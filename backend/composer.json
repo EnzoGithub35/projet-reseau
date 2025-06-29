@@ -1,0 +1,12 @@
+{
+    "name": "accesweb/backend",
+    "description": "Backend API pour la gestion des demandes d'accès web",
+    "require": {
+        "ext-pdo": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
