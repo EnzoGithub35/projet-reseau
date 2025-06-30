@@ -109,3 +109,5 @@ WHERE tr.id = (
     WHERE tr2.request_id = r.id
 )
 OR tr.id IS NULL;
+
+ALTER TABLE users ADD COLUMN api_token VARCHAR(255) DEFAULT NULL;

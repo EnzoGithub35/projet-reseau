@@ -5,7 +5,7 @@ import AdminDemandeList from "../components/admin/AdminDemandeList";
 import AdminDemandeDetail from "../components/admin/AdminDemandeDetail";
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [demandes, setDemandes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -58,7 +58,18 @@ const AdminDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <h1>Tableau de bord Administrateur</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1>Tableau de bord Administrateur</h1>
+        <button onClick={logout} className="logout-btn">
+          Déconnexion
+        </button>
+      </div>
       {error && <div className="error-msg">{error}</div>}
       {success && <div className="success-msg">{success}</div>}
       <h2>Toutes les demandes</h2>

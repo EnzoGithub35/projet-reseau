@@ -6,19 +6,44 @@ require_once __DIR__ . '/../models/User.php';
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // Correction ici
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Simuler l'utilisateur connecté (à remplacer par un vrai système d'auth plus tard)
-$user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
-$user_role = isset($_GET['role']) ? $_GET['role'] : 'demandeur';
+// Authentification par token sécurisé (stocké en base)
+function getUserFromToken($pdo)
+{
+    $headers = getallheaders();
+    if (!isset($headers['Authorization'])) return null;
+    $auth = $headers['Authorization'];
+    if (strpos($auth, 'Bearer ') !== 0) return null;
+    $token = substr($auth, 7);
+    // Recherche de l'utilisateur par token
+    $stmt = $pdo->prepare("SELECT id, role FROM users WHERE api_token = ?");
+    $stmt->execute([$token]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $user ?: null;
+}
+
+$user = getUserFromToken($pdo);
+$user_id = $user['id'] ?? null;
+$user_role = $user['role'] ?? null;
 
 if ($method === 'POST' && preg_match('#/requests$#', $path)) {
     $input = json_decode(file_get_contents('php://input'), true);
-    if (!$input || !isset($input['target_ip'], $input['website_name'], $input['description'], $input['justification'], $input['user_id'])) {
+    if (
+        !$input ||
+        !isset($input['target_ip'], $input['website_name'], $input['description'], $input['justification'])
+    ) {
         http_response_code(400);
         echo json_encode(['message' => 'Champs requis manquants']);
         exit;
     }
+    if (!$user_id) {
+        http_response_code(401);
+        echo json_encode(['message' => 'Non authentifié']);
+        exit;
+    }
+    // Ajoute l'user_id du token à la demande
+    $input['user_id'] = $user_id;
     $ok = RequestModel::create($pdo, $input);
     if ($ok) {
         http_response_code(201);
@@ -31,14 +56,14 @@ if ($method === 'POST' && preg_match('#/requests$#', $path)) {
 }
 
 if ($method === 'GET' && preg_match('#/requests$#', $path)) {
+    if (!$user_role) {
+        http_response_code(401);
+        echo json_encode(['message' => 'Non authentifié']);
+        exit;
+    }
     if ($user_role === 'admin') {
         $requests = RequestModel::findAll($pdo);
     } else {
-        if (!$user_id) {
-            http_response_code(401);
-            echo json_encode(['message' => 'Non authentifié']);
-            exit;
-        }
         $requests = RequestModel::findByUser($pdo, $user_id);
     }
     echo json_encode($requests);
@@ -46,8 +71,19 @@ if ($method === 'GET' && preg_match('#/requests$#', $path)) {
 }
 
 if ($method === 'GET' && preg_match('#/requests/(\d+)$#', $path, $matches)) {
+    if (!$user_role) {
+        http_response_code(401);
+        echo json_encode(['message' => 'Non authentifié']);
+        exit;
+    }
     $request = RequestModel::findById($pdo, $matches[1]);
     if ($request) {
+        // Si non admin, vérifier que la demande appartient à l'utilisateur
+        if ($user_role !== 'admin' && $request['user_id'] != $user_id) {
+            http_response_code(403);
+            echo json_encode(['message' => 'Accès interdit']);
+            exit;
+        }
         echo json_encode($request);
     } else {
         http_response_code(404);
@@ -57,6 +93,11 @@ if ($method === 'GET' && preg_match('#/requests/(\d+)$#', $path, $matches)) {
 }
 
 if ($method === 'PUT' && preg_match('#/requests/(\d+)$#', $path, $matches)) {
+    if ($user_role !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['message' => 'Action réservée à l\'admin']);
+        exit;
+    }
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input || !isset($input['status'])) {
         http_response_code(400);

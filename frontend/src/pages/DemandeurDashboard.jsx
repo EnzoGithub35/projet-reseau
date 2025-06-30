@@ -6,7 +6,7 @@ import DemandeList from "../components/demandeur/DemandeList";
 import DemandeDetail from "../components/demandeur/DemandeDetail";
 
 const DemandeurDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [demandes, setDemandes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -50,7 +50,10 @@ const DemandeurDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <h1>Tableau de bord Demandeur</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Tableau de bord Demandeur</h1>
+        <button onClick={logout} className="logout-btn">Déconnexion</button>
+      </div>
       {error && <div className="error-msg">{error}</div>}
       {success && <div className="success-msg">{success}</div>}
       <button onClick={() => setShowForm((v) => !v)}>

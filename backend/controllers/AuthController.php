@@ -65,8 +65,9 @@ if ($method === 'POST' && preg_match('#/auth/login$#', $path)) {
         echo json_encode(['message' => 'Identifiants invalides']);
         exit;
     }
-    // Générer un token simple (à remplacer par JWT en prod)
-    $token = base64_encode(random_bytes(32));
+    $token = bin2hex(random_bytes(32));
+    $stmt = $pdo->prepare("UPDATE users SET api_token = ? WHERE id = ?");
+    $stmt->execute([$token, $user['id']]);
     echo json_encode([
         'token' => $token,
         'user' => [
