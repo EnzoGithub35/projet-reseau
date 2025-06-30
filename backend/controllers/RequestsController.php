@@ -6,7 +6,7 @@ require_once __DIR__ . '/../models/User.php';
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
-$path = $_SERVER['REQUEST_URI'];
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // Correction ici
 
 // Simuler l'utilisateur connecté (à remplacer par un vrai système d'auth plus tard)
 $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
